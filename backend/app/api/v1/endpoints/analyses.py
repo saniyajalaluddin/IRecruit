@@ -1,15 +1,85 @@
-"""Analyses management API endpoints with strict ownership enforcement."""
+"""Analyses management API endpoints with ownership enforcement, anonymous analysis, and claiming."""
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.app.core.rate_limit import RateLimiter
 from backend.app.db.session import get_db
 from backend.app.models.audit import AuditEvent
 from backend.app.models.user import User
+from backend.app.modules.analysis.schemas import (
+    AnonymousAnalysisRequest,
+    AnonymousAnalysisResponse,
+    ClaimAnalysisRequest,
+    ClaimAnalysisResponse,
+)
+from backend.app.modules.analysis.service import anonymous_analysis_service
 from backend.app.modules.auth.dependencies import get_current_active_user
 from backend.app.modules.security.authorization import verify_analysis_ownership
 from backend.app.schemas.common import StandardResponse
 
 router = APIRouter(prefix="/analyses")
+
+anonymous_rate_limiter = RateLimiter(tier="anonymous_analysis")
+
+
+@router.post(
+    "/anonymous",
+    response_model=StandardResponse[AnonymousAnalysisResponse],
+    summary="Run Anonymous Quick Analysis",
+    description="Performs instant resume alignment and ATS parsing analysis without requiring an account.",
+)
+async def run_anonymous_analysis(
+    request: Request,
+    response: Response,
+    payload: AnonymousAnalysisRequest,
+    db: AsyncSession = Depends(get_db),
+) -> StandardResponse[AnonymousAnalysisResponse]:
+    anonymous_rate_limiter(request, response)
+    client_ip = request.client.host if request.client else None
+
+    result = await anonymous_analysis_service.run_anonymous_analysis(
+        db=db,
+        request=payload,
+        client_ip=client_ip,
+    )
+    request_id = getattr(request.state, "request_id", "system")
+
+    return StandardResponse(
+        success=True,
+        data=result,
+        request_id=request_id,
+    )
+
+
+@router.post(
+    "/{analysis_id}/claim",
+    response_model=StandardResponse[ClaimAnalysisResponse],
+    summary="Claim Anonymous Analysis",
+    description="Transfers an anonymous analysis to an authenticated candidate account using its session token.",
+)
+async def claim_analysis(
+    analysis_id: str,
+    request: Request,
+    payload: ClaimAnalysisRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> StandardResponse[ClaimAnalysisResponse]:
+    client_ip = request.client.host if request.client else None
+    result = await anonymous_analysis_service.claim_analysis(
+        db=db,
+        analysis_id=analysis_id,
+        session_id=payload.session_id,
+        user=current_user,
+        client_ip=client_ip,
+    )
+    request_id = getattr(request.state, "request_id", "system")
+
+    return StandardResponse(
+        success=True,
+        data=result,
+        request_id=request_id,
+    )
 
 
 @router.get(

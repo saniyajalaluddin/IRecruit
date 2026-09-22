@@ -46,6 +46,7 @@ class Analysis(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     embedding_model: Mapped[str] = mapped_column(String(100), nullable=False)
     execution_duration_ms: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     is_anonymous: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    session_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
 
     # Relationships
     user: Mapped[Optional["User"]] = relationship("User", back_populates="analyses")
