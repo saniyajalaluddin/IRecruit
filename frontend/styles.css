@@ -786,9 +786,62 @@ a:hover {
 }
 
 /* ==========================================================================
-   Responsive Design Breakpoints
+   Responsive Design Breakpoints & Touch Target Optimization
    Tested at: 320px, 375px, 390px, 430px, 768px, 1024px, 1280px+
    ========================================================================== */
+
+/* Touch Target Minimum Sizing (WCAG 2.5.5 / 2.5.8 >= 44px) */
+@media (pointer: coarse), (max-width: 768px) {
+  .btn {
+    min-height: 44px;
+    padding: 0.65rem 1rem;
+  }
+
+  .tab-btn {
+    min-height: 44px;
+    padding: 0.5rem 0.85rem;
+  }
+
+  .nav-link {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  .mobile-menu-btn {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .form-input, .form-textarea {
+    font-size: 16px; /* Prevents iOS auto-zoom on input focus */
+  }
+}
+
+/* Desktop Large (>= 1280px) */
+@media (min-width: 1280px) {
+  .header-container, .workbench-section, .dashboard-container, .footer-container {
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* Tablet Landscape & Small Desktop (1024px) */
+@media (max-width: 1024px) {
+  .workbench-grid {
+    gap: 1.5rem;
+  }
+  .score-overview-card {
+    gap: 1.5rem;
+    padding: 1.5rem;
+  }
+}
+
+/* Medium Tablet & Mobile Landscape (900px) */
 @media (max-width: 900px) {
   .workbench-grid {
     grid-template-columns: 1fr;
@@ -809,9 +862,13 @@ a:hover {
   }
 }
 
+/* Tablet Portrait & Large Phones (768px) */
 @media (max-width: 768px) {
   .hero-title {
-    font-size: 2rem;
+    font-size: 2.15rem;
+  }
+  .hero-subtitle {
+    font-size: 1rem;
   }
   .nav-links {
     display: none;
@@ -827,22 +884,82 @@ a:hover {
     border-bottom: 1px solid var(--border-color);
     padding: 1.5rem;
     gap: 1rem;
+    box-shadow: var(--shadow-lg);
   }
   .mobile-menu-btn {
-    display: block;
+    display: flex;
+  }
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 480px) {
+/* Modern Smart Phones (430px - iPhone 14/15 Pro Max) */
+@media (max-width: 430px) {
   .hero-title {
-    font-size: 1.7rem;
+    font-size: 1.85rem;
   }
   .workbench-card {
-    padding: 1.25rem;
+    padding: 1.25rem 1rem;
+  }
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Standard Smart Phones (390px / 375px - iPhone 12/13/14, iPhone SE 2/3) */
+@media (max-width: 390px) {
+  .hero-title {
+    font-size: 1.7rem;
+    letter-spacing: -0.02em;
   }
   .header-actions .btn {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.85rem;
+    padding: 0.45rem 0.65rem;
+    font-size: 0.8rem;
+  }
+  .dropzone {
+    padding: 1.5rem 1rem;
+  }
+}
+
+/* Ultra Compact Screens (320px - iPhone SE 1st gen / Small Mobile) */
+@media (max-width: 320px) {
+  .hero-title {
+    font-size: 1.45rem;
+  }
+  .hero-pill {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+  .workbench-card {
+    padding: 1rem 0.75rem;
+  }
+  .dropzone-icon {
+    font-size: 1.75rem;
+  }
+  .dropzone-title {
+    font-size: 0.9rem;
+  }
+  .gauge-circle {
+    width: 105px;
+    height: 105px;
+  }
+  .gauge-circle::before {
+    width: 80px;
+    height: 80px;
+  }
+  .gauge-value {
+    font-size: 1.5rem;
+  }
+}
+
+/* Accessible Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
