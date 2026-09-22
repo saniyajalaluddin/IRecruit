@@ -1,6 +1,7 @@
 """Deterministic Mock LLM and Embedding providers for offline execution, CI/CD, and testing."""
 
 import hashlib
+import re
 import time
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
@@ -79,13 +80,17 @@ class MockEmbeddingProvider(BaseEmbeddingProvider):
     async def get_embeddings(self, texts: List[str]) -> List[List[float]]:
         embeddings = []
         for text in texts:
-            # Deterministic hash-based pseudo-vector normalized to unit sphere
-            vec = []
-            for i in range(self._dimension):
-                h = hashlib.sha256(f"{text}_{i}".encode("utf-8")).hexdigest()
-                val = (int(h[:8], 16) / 0xFFFFFFFF) * 2.0 - 1.0
-                vec.append(val)
-            norm = sum(x**2 for x in vec) ** 0.5 or 1.0
-            unit_vec = [x / norm for x in vec]
+            tokens = re.findall(r"[\w+#.]+", text.lower())
+            if not tokens:
+                embeddings.append([0.0] * self._dimension)
+                continue
+            vec = [0.0] * self._dimension
+            for tok in tokens:
+                h = hashlib.sha256(tok.encode("utf-8")).hexdigest()
+                idx = int(h[:4], 16) % self._dimension
+                sign = 1.0 if int(h[4:6], 16) % 2 == 0 else -1.0
+                vec[idx] += sign * 1.0
+            norm = sum(x**2 for x in vec) ** 0.5
+            unit_vec = [x / norm for x in vec] if norm > 0 else vec
             embeddings.append(unit_vec)
         return embeddings
