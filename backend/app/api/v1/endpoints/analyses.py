@@ -15,6 +15,8 @@ from backend.app.modules.analysis.schemas import (
 )
 from backend.app.modules.analysis.service import anonymous_analysis_service
 from backend.app.modules.auth.dependencies import get_current_active_user
+from backend.app.modules.dashboard.schemas import AnalysisHistoryResponse, DashboardMetrics
+from backend.app.modules.dashboard.service import dashboard_service
 from backend.app.modules.security.authorization import verify_analysis_ownership
 from backend.app.schemas.common import StandardResponse
 
@@ -83,6 +85,48 @@ async def claim_analysis(
 
 
 @router.get(
+    "/history",
+    response_model=StandardResponse[AnalysisHistoryResponse],
+    summary="Get User Analysis History",
+    description="Retrieves the candidate's latest saved analyses respecting tier limits (up to 5 for free users).",
+)
+async def get_history(
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> StandardResponse[AnalysisHistoryResponse]:
+    history = await dashboard_service.get_analysis_history(db=db, user_id=current_user.id)
+    request_id = getattr(request.state, "request_id", "system")
+
+    return StandardResponse(
+        success=True,
+        data=history,
+        request_id=request_id,
+    )
+
+
+@router.get(
+    "/dashboard",
+    response_model=StandardResponse[DashboardMetrics],
+    summary="Get User Dashboard Metrics",
+    description="Retrieves aggregated analysis metrics, average alignment score, and top missing skill gaps.",
+)
+async def get_dashboard(
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> StandardResponse[DashboardMetrics]:
+    metrics = await dashboard_service.get_dashboard_metrics(db=db, user_id=current_user.id)
+    request_id = getattr(request.state, "request_id", "system")
+
+    return StandardResponse(
+        success=True,
+        data=metrics,
+        request_id=request_id,
+    )
+
+
+@router.get(
     "/{analysis_id}",
     response_model=StandardResponse[dict],
     summary="Get Analysis Report",
@@ -103,10 +147,13 @@ async def get_analysis(
             "id": analysis.id,
             "overall_score": analysis.overall_score,
             "component_scores": analysis.component_scores,
+            "weights": analysis.weights,
             "scoring_version": analysis.scoring_version,
             "llm_provider": analysis.llm_provider,
             "llm_model": analysis.llm_model,
-            "created_at": analysis.created_at.isoformat(),
+            "embedding_provider": analysis.embedding_provider,
+            "embedding_model": analysis.embedding_model,
+            "created_at": analysis.created_at.isoformat() if analysis.created_at else "",
         },
         request_id=request_id,
     )
