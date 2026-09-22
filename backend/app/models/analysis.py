@@ -44,6 +44,7 @@ class Analysis(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     llm_model: Mapped[str] = mapped_column(String(100), nullable=False)
     embedding_provider: Mapped[str] = mapped_column(String(50), nullable=False)
     embedding_model: Mapped[str] = mapped_column(String(100), nullable=False)
+    embedding_version: Mapped[str] = mapped_column(String(50), default="v1.0.0", nullable=False)
     execution_duration_ms: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     is_anonymous: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     session_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)

@@ -164,6 +164,7 @@ class AnonymousAnalysisService:
             llm_model="mock-llm",
             embedding_provider=self.matching_service.metadata.get("provider", "tfidf"),
             embedding_model=self.matching_service.metadata.get("model", "tfidf-v1"),
+            embedding_version=self.matching_service.metadata.get("matching_version", "v1.0.0"),
             execution_duration_ms=execution_duration,
             is_anonymous=True,
             session_id=session_id,

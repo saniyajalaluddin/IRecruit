@@ -14,6 +14,7 @@ from backend.app.modules.analysis.schemas import (
     ClaimAnalysisResponse,
 )
 from backend.app.modules.analysis.service import anonymous_analysis_service
+from backend.app.modules.analysis.reproducibility import ReproducibilityMetadata, ReproducibilityService
 from backend.app.modules.auth.dependencies import get_current_active_user
 from backend.app.modules.dashboard.schemas import AnalysisHistoryResponse, DashboardMetrics
 from backend.app.modules.dashboard.service import dashboard_service
@@ -122,6 +123,29 @@ async def get_dashboard(
     return StandardResponse(
         success=True,
         data=metrics,
+        request_id=request_id,
+    )
+
+
+@router.get(
+    "/{analysis_id}/reproducibility",
+    response_model=StandardResponse[ReproducibilityMetadata],
+    summary="Get Analysis Reproducibility Metadata",
+    description="Retrieves complete model configuration, prompt version, scoring version, and configuration hash for auditability.",
+)
+async def get_analysis_reproducibility(
+    analysis_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> StandardResponse[ReproducibilityMetadata]:
+    await verify_analysis_ownership(analysis_id, current_user, db)
+    metadata = await ReproducibilityService.get_metadata_for_analysis(db=db, analysis_id=analysis_id)
+    request_id = getattr(request.state, "request_id", "system")
+
+    return StandardResponse(
+        success=True,
+        data=metadata,
         request_id=request_id,
     )
 
