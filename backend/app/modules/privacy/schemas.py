@@ -1,5 +1,7 @@
 """Privacy and PII management schemas."""
 
+from __future__ import annotations
+
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, List, Optional
@@ -13,7 +15,27 @@ class PIIType(str, Enum):
     PHYSICAL_ADDRESS = "physical_address"
     SSN = "ssn"
     LINKEDIN = "linkedin_url"
+    ZIP_CODE = "zip_code"
+    IP_ADDRESS = "ip_address"
     PERSON_NAME = "person_name"
+
+
+class RedactionMode(str, Enum):
+    """Action to take on detected sensitive identifiers."""
+    MASK = "MASK"          # Replace with [REDACTED_{TYPE}]
+    TOKENIZE = "TOKENIZE"  # Replace with reversible/reference token {{ANON_{TYPE}_{N}}}
+    REMOVE = "REMOVE"      # Strip completely
+
+
+class RedactionOptions(BaseModel):
+    """Configuration options for PII minimization."""
+    mode: RedactionMode = RedactionMode.MASK
+    redact_email: bool = True
+    redact_phone: bool = True
+    redact_ssn: bool = True
+    redact_linkedin: bool = True
+    redact_address: bool = True
+    redact_ip: bool = True
 
 
 class PIISpan(BaseModel):
@@ -29,7 +51,8 @@ class RedactionResult(BaseModel):
     sanitized_text: str
     detected_count: int
     redacted_types: List[PIIType]
-    spans: List[PIISpan]
+    spans: List[PIISpan] = Field(default_factory=list)
+    token_map: Dict[str, str] = Field(default_factory=dict)
 
 
 class PrivacyAuditEventType(str, Enum):
@@ -43,7 +66,7 @@ class PrivacyAuditEventType(str, Enum):
 
 
 class PrivacyAuditEntry(BaseModel):
-    """Audit record for user privacy compliance."""
+    """Audit record for user privacy compliance without retaining raw PII."""
     event_type: PrivacyAuditEventType
     user_id: Optional[str] = None
     resource_id: str
