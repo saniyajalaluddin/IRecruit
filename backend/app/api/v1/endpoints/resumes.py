@@ -16,6 +16,13 @@ from backend.app.modules.auth.schemas import TokenPayload
 from backend.app.modules.documents import DocumentFormat, DocumentUploadService, TemporaryStorageManager
 from backend.app.modules.privacy.service import PIIService
 from backend.app.modules.security.authorization import verify_resume_ownership
+from backend.app.modules.versioning.schemas import (
+    ResumeVersionCreate,
+    ResumeVersionItem,
+    ResumeVersionListResponse,
+    VersionComparisonResponse,
+)
+from backend.app.modules.versioning.service import resume_versioning_service
 from backend.app.schemas.common import StandardResponse
 
 router = APIRouter(prefix="/resumes")
@@ -143,6 +150,94 @@ async def get_resume(
             "content_type": resume.content_type,
             "created_at": resume.created_at.isoformat(),
         },
+        request_id=request_id,
+    )
+
+
+@router.post(
+    "/{resume_id}/versions",
+    response_model=StandardResponse[ResumeVersionItem],
+    status_code=status.HTTP_201_CREATED,
+    summary="Create Resume Version",
+    description="Creates a new sequential revision for an existing resume.",
+)
+async def create_resume_version(
+    resume_id: str,
+    payload: ResumeVersionCreate,
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> StandardResponse[ResumeVersionItem]:
+    client_ip = request.client.host if request.client else None
+    version_item = await resume_versioning_service.create_version(
+        db=db,
+        resume_id=resume_id,
+        user=current_user,
+        raw_text=payload.raw_text,
+        notes=payload.revision_notes,
+        client_ip=client_ip,
+    )
+    request_id = getattr(request.state, "request_id", "system")
+
+    return StandardResponse(
+        success=True,
+        data=version_item,
+        request_id=request_id,
+    )
+
+
+@router.get(
+    "/{resume_id}/versions",
+    response_model=StandardResponse[ResumeVersionListResponse],
+    summary="List Resume Versions",
+    description="Lists all sequential versions and revision history for a resume.",
+)
+async def list_resume_versions(
+    resume_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> StandardResponse[ResumeVersionListResponse]:
+    versions_list = await resume_versioning_service.list_versions(
+        db=db,
+        resume_id=resume_id,
+        user=current_user,
+    )
+    request_id = getattr(request.state, "request_id", "system")
+
+    return StandardResponse(
+        success=True,
+        data=versions_list,
+        request_id=request_id,
+    )
+
+
+@router.get(
+    "/{resume_id}/compare",
+    response_model=StandardResponse[VersionComparisonResponse],
+    summary="Compare Resume Versions",
+    description="Compares two resume versions, computing structural text diffs and skill changes.",
+)
+async def compare_resume_versions(
+    resume_id: str,
+    base_version: int,
+    target_version: int,
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> StandardResponse[VersionComparisonResponse]:
+    comparison = await resume_versioning_service.compare_versions(
+        db=db,
+        resume_id=resume_id,
+        user=current_user,
+        base_version_number=base_version,
+        target_version_number=target_version,
+    )
+    request_id = getattr(request.state, "request_id", "system")
+
+    return StandardResponse(
+        success=True,
+        data=comparison,
         request_id=request_id,
     )
 
