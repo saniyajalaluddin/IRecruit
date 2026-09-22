@@ -98,6 +98,9 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str | None = Field(
         default=None, description="OpenAI API Key (if using OpenAI)"
     )
+    OPENAI_BASE_URL: str = Field(
+        default="https://api.openai.com/v1", description="OpenAI API Base URL"
+    )
     OLLAMA_BASE_URL: str = Field(
         default="http://localhost:11434", description="Ollama API base URL"
     )
