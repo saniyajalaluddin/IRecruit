@@ -1,5 +1,6 @@
 """Resumes module initialization."""
 
+from backend.app.modules.resumes.parser import ResumeIntelligenceParser
 from backend.app.modules.resumes.schemas import (
     CertificationItem,
     EducationItem,
@@ -7,7 +8,7 @@ from backend.app.modules.resumes.schemas import (
     StructuredResume,
     WorkExperienceItem,
 )
-from backend.app.modules.resumes.service import ResumeParserInterface
+from backend.app.modules.resumes.service import ResumeParserInterface, ResumeService
 
 __all__ = [
     "CertificationItem",
@@ -16,4 +17,6 @@ __all__ = [
     "StructuredResume",
     "WorkExperienceItem",
     "ResumeParserInterface",
+    "ResumeService",
+    "ResumeIntelligenceParser",
 ]
