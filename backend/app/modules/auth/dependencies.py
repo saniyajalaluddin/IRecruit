@@ -2,7 +2,10 @@
 
 from typing import Optional
 from fastapi import Depends, Header
+from sqlalchemy.ext.asyncio import AsyncSession
 from backend.app.core.errors import UnauthorizedError
+from backend.app.db.session import get_db
+from backend.app.models.user import User
 from backend.app.modules.auth.schemas import TokenPayload
 from backend.app.modules.auth.service import AuthService
 
@@ -35,3 +38,19 @@ async def get_optional_user_payload(authorization: Optional[str] = Header(None))
     except Exception:
         pass
     return None
+
+
+async def get_current_active_user(
+    payload: TokenPayload = Depends(get_current_user_payload),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    """Fetches and validates active status of the authenticated user."""
+    from backend.app.modules.users.service import UserService
+
+    user_service = UserService(db)
+    user = await user_service.get_by_id(payload.sub)
+    if not user:
+        raise UnauthorizedError("User account no longer exists")
+    if not user.is_active:
+        raise UnauthorizedError("User account has been deactivated")
+    return user

@@ -3,10 +3,13 @@
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from starlette.testclient import TestClient
 
-from backend.app.main import app
 from backend.app.core.config import Settings, get_settings
+from backend.app.db.base import Base
+from backend.app.db.session import get_db
+from backend.app.main import app
 
 
 def get_test_settings() -> Settings:
@@ -23,25 +26,39 @@ def get_test_settings() -> Settings:
     )
 
 
-@pytest.fixture(autouse=True)
-def override_settings():
-    """Overrides settings dependency with test configuration."""
-    test_settings = get_test_settings()
-    app.dependency_overrides[get_settings] = lambda: test_settings
-    yield test_settings
-    app.dependency_overrides.clear()
+@pytest_asyncio.fixture(loop_scope="function")
+async def test_db_session():
+    """Provides a fresh isolated in-memory SQLite database session."""
+    engine = create_async_engine(
+        "sqlite+aiosqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        future=True,
+    )
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
+    session_factory = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+    async with session_factory() as session:
+        yield session
 
-@pytest.fixture
-def sync_client():
-    """Synchronous test client fixture for rapid integration testing."""
-    with TestClient(app=app) as client:
-        yield client
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+    await engine.dispose()
 
 
 @pytest_asyncio.fixture(loop_scope="function")
-async def async_client():
-    """Async HTTP client fixture configured for ASGI transport."""
+async def async_client(test_db_session: AsyncSession):
+    """Async HTTP client fixture with DB and settings overrides configured."""
+    test_settings = get_test_settings()
+
+    async def override_get_db():
+        yield test_db_session
+
+    app.dependency_overrides[get_settings] = lambda: test_settings
+    app.dependency_overrides[get_db] = override_get_db
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://testserver") as client:
         yield client
+
+    app.dependency_overrides.clear()
