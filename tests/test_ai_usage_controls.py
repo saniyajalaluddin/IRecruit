@@ -155,3 +155,4 @@ def test_database_persistence_of_usage(fresh_usage_service, in_memory_db):
     assert row.model_name == "gpt-4o"
     assert row.total_tokens == 1600
     assert row.latency_ms == pytest.approx(180.5)
+

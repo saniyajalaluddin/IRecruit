@@ -23,3 +23,4 @@ __all__ = [
     "ResumeVersioningService",
     "resume_versioning_service",
 ]
+

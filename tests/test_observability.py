@@ -132,3 +132,4 @@ async def test_health_and_telemetry_endpoints(async_test_db):
         tel_data = tel_resp.json()["data"]
         assert "total_requests" in tel_data
         assert "latency_p50_ms" in tel_data
+

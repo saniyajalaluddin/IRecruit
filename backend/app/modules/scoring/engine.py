@@ -242,3 +242,4 @@ class ScoringEngine:
             f"Primary verified competencies: {strengths_str}. "
             f"Key observations: {gaps_str}"
         )
+

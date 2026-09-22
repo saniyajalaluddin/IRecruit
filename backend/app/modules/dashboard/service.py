@@ -180,3 +180,4 @@ class DashboardService:
 
 # Global singleton instance
 dashboard_service = DashboardService()
+

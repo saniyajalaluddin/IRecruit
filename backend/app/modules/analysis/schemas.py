@@ -46,3 +46,4 @@ class ClaimAnalysisResponse(BaseModel):
     claimed: bool
     user_id: str
     claimed_at: datetime
+

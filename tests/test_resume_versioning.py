@@ -249,3 +249,4 @@ async def test_versioning_endpoints(async_test_db, test_user, initial_resume):
         assert comp_resp.status_code == 200
         assert comp_resp.json()["data"]["base_version_number"] == 1
         assert comp_resp.json()["data"]["target_version_number"] == 2
+

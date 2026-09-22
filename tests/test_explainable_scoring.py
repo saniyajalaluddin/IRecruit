@@ -238,3 +238,4 @@ def test_scoring_service_facade(sample_candidate_resume: StructuredResume):
     assert isinstance(res, AlignmentScoreResult)
     assert res.components.ats_compatibility == 90.0
     assert res.overall_score > 0
+

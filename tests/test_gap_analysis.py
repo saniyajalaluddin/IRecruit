@@ -191,3 +191,4 @@ def test_gap_analysis_service_facade(sample_analysis_data):
     assert isinstance(result, CategorizedGapAnalysisResult)
     assert len(result.matched) == 1
     assert len(result.missing) == 2
+

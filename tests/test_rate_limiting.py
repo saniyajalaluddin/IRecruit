@@ -156,3 +156,4 @@ async def test_concurrency_throttler():
     # Clean up releases
     throttler.release()
     throttler.release()
+

@@ -58,3 +58,4 @@ def truncate_to_token_limit(text: str, max_tokens: int) -> str:
             truncated = truncated[:last_space]
 
     return truncated + "\n...[Content truncated to respect token quota]"
+

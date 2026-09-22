@@ -42,3 +42,4 @@ class ControlledOptimizationResult(BaseModel):
         ),
         description="Strict non-fabrication guarantee disclaimer",
     )
+

@@ -142,3 +142,4 @@ class UsageTrackingService:
 
 # Global singleton instance
 usage_service = UsageTrackingService()
+

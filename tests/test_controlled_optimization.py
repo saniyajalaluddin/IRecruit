@@ -131,3 +131,4 @@ def test_optimization_service_facade(sales_forecasting_candidate_resume: Structu
     assert isinstance(result, ControlledOptimizationResult)
     assert "No ungrounded metrics" in result.disclaimer
     assert len(result.supported_skills_referenced) > 0
+

@@ -127,3 +127,4 @@ class GapAnalysisEngine:
             return "Partial evidence found: related concepts exist in the resume, but the specific technology is not fully verified."
         else:
             return "Requirement is directly supported by candidate resume evidence."
+

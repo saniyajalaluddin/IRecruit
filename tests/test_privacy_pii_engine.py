@@ -111,3 +111,4 @@ def test_privacy_audit_service():
     events = audit_service.get_events("resume-uuid-101")
     assert len(events) == 1
     assert events[0].details["count"] == "2"
+

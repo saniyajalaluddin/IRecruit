@@ -40,3 +40,4 @@ class CategorizedGapAnalysisResult(BaseModel):
     moderate_gaps_count: int = Field(default=0, description="Count of partial/ambiguous REQUIRED skills")
     low_gaps_count: int = Field(default=0, description="Count of missing/partial PREFERRED skills")
     summary: str = Field(..., description="Deterministic gap analysis summary")
+

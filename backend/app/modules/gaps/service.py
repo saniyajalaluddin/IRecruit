@@ -31,3 +31,4 @@ class GapAnalysisService:
     ) -> CategorizedGapAnalysisResult:
         """Categorizes gaps based strictly on JD-defined requirements."""
         return self.engine.analyze_gaps(requirements, evidence_list)
+

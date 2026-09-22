@@ -43,3 +43,4 @@ class UsageSummary(BaseModel):
     total_tokens: int = 0
     total_cost_usd: float = 0.0
     model_breakdown: Dict[str, Dict[str, float]] = Field(default_factory=dict)
+

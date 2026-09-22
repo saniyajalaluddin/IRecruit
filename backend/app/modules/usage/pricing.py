@@ -54,3 +54,4 @@ def calculate_cost(
 
     total_cost = (input_tokens * input_price_per_token) + (output_tokens * output_price_per_token)
     return round(total_cost, 6)
+

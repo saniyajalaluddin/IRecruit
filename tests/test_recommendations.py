@@ -163,3 +163,4 @@ async def test_recommendation_service_facade(recommendation_test_data):
     assert len(recs) >= 3
     assert all(isinstance(r, RecommendationItem) for r in recs)
     assert all(r.is_evidence_grounded is True for r in recs)
+

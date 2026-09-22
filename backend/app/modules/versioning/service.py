@@ -225,3 +225,4 @@ class ResumeVersioningService:
 
 # Global singleton instance
 resume_versioning_service = ResumeVersioningService()
+

@@ -53,3 +53,4 @@ class VersionComparisonResponse(BaseModel):
     skills_added: List[str]
     skills_removed: List[str]
     score_progression: Optional[ScoreProgression] = None
+

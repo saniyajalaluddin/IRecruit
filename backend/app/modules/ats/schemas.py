@@ -51,3 +51,4 @@ class ATSCompatibilityReport(BaseModel):
     standard_headings_detected: List[str] = Field(default_factory=list)
     missing_standard_headings: List[str] = Field(default_factory=list)
     summary: str
+

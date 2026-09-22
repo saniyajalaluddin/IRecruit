@@ -36,3 +36,4 @@ class DashboardMetrics(BaseModel):
     saved_analyses_count: int = Field(default=0)
     max_saved_analyses: int = Field(default=5)
     latest_analysis: Optional[AnalysisHistoryItem] = None
+

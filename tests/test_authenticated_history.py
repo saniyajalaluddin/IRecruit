@@ -218,3 +218,4 @@ async def test_history_and_dashboard_endpoints(async_test_db, test_user):
         assert dash_data["data"]["total_analyses_run"] == 1
         assert dash_data["data"]["average_score"] == 85.0
         assert "redis" in dash_data["data"]["top_missing_skills"]
+

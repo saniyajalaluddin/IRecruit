@@ -34,3 +34,4 @@ class OptimizationService:
     ) -> ControlledOptimizationResult:
         """Optimizes resume wording strictly within candidate-provided source evidence."""
         return self.optimizer.optimize_resume(resume, evidence_list, target_requirements)
+

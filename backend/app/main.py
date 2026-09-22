@@ -101,12 +101,24 @@ def create_application() -> FastAPI:
 
     @app.get("/", tags=["Root"])
     async def root(request: Request):
+        accept = request.headers.get("accept", "")
+        frontend_index = os.path.join(os.getcwd(), "frontend", "index.html")
+        if "text/html" in accept and os.path.exists(frontend_index):
+            from fastapi.responses import FileResponse
+            return FileResponse(frontend_index, media_type="text/html")
+
         return {
             "name": settings.APP_NAME,
             "version": settings.APP_VERSION,
             "status": "operational",
             "docs": f"{request.base_url}docs" if settings.DEBUG else "disabled",
         }
+
+    # Mount static assets if frontend directory exists
+    frontend_dir = os.path.join(os.getcwd(), "frontend")
+    if os.path.isdir(frontend_dir):
+        from fastapi.staticfiles import StaticFiles
+        app.mount("/", StaticFiles(directory=frontend_dir), name="frontend")
 
     return app
 
