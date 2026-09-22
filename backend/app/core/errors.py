@@ -127,10 +127,12 @@ def build_error_response(
     message: str,
     request_id: str = "unknown",
     details: Optional[Dict[str, Any]] = None,
+    headers: Optional[Dict[str, str]] = None,
 ) -> JSONResponse:
     """Constructs a deterministic JSON error response envelope."""
     return JSONResponse(
         status_code=status_code,
+        headers=headers,
         content={
             "success": False,
             "error": {
@@ -150,12 +152,17 @@ async def app_exception_handler(request: Request, exc: AppException) -> JSONResp
         f"Domain error: {exc.code} - {exc.message}",
         extra={"request_id": request_id},
     )
+    headers = {}
+    if exc.status_code == status.HTTP_429_TOO_MANY_REQUESTS and exc.details and "retry_after_seconds" in exc.details:
+        headers["Retry-After"] = str(exc.details["retry_after_seconds"])
+
     return build_error_response(
         status_code=exc.status_code,
         code=exc.code,
         message=exc.message,
         request_id=request_id,
         details=exc.details,
+        headers=headers or None,
     )
 
 
