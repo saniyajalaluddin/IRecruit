@@ -1,7 +1,11 @@
-"""Privacy-safe performance metrics and correlation tracking."""
+"""Privacy-safe performance metrics, telemetry collector, and correlation tracking."""
 
+from __future__ import annotations
+
+import math
 import time
-from typing import Dict
+from collections import defaultdict
+from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
 from backend.app.core.logging import logger
 
@@ -52,3 +56,69 @@ class PerformanceTracker:
             extra={"request_id": self.analysis_id},
         )
         return summary
+
+
+class TelemetryCollector:
+    """Thread-safe in-memory telemetry, request counting, and latency percentiles."""
+
+    def __init__(self):
+        self._start_time = time.time()
+        self._request_count = 0
+        self._error_count = 0
+        self._status_counts: Dict[int, int] = defaultdict(int)
+        self._latencies: List[float] = []
+
+    def record_request(
+        self, method: str, path: str, status_code: int, duration_ms: float
+    ) -> None:
+        """Record an incoming HTTP request outcome."""
+        self._request_count += 1
+        self._status_counts[status_code] += 1
+        if status_code >= 400:
+            self._error_count += 1
+
+        # Keep a bounded sample of recent latencies (max 5,000 items)
+        if len(self._latencies) >= 5000:
+            self._latencies.pop(0)
+        self._latencies.append(duration_ms)
+
+    def get_summary(self) -> Dict[str, float | int | dict]:
+        """Calculates current telemetry summary including percentiles."""
+        uptime = round(time.time() - self._start_time, 2)
+        sorted_latencies = sorted(self._latencies) if self._latencies else [0.0]
+        n = len(sorted_latencies)
+
+        def percentile(p: float) -> float:
+            if not sorted_latencies or sorted_latencies == [0.0]:
+                return 0.0
+            idx = max(0, min(n - 1, int(math.ceil((p / 100.0) * n) - 1)))
+            return round(sorted_latencies[idx], 2)
+
+        p50 = percentile(50.0)
+        p95 = percentile(95.0)
+        p99 = percentile(99.0)
+
+        error_rate = round(self._error_count / self._request_count, 4) if self._request_count > 0 else 0.0
+
+        return {
+            "uptime_seconds": uptime,
+            "total_requests": self._request_count,
+            "error_count": self._error_count,
+            "error_rate": error_rate,
+            "status_codes": dict(self._status_counts),
+            "latency_p50_ms": p50,
+            "latency_p95_ms": p95,
+            "latency_p99_ms": p99,
+        }
+
+    def reset(self) -> None:
+        """Reset telemetry collector metrics."""
+        self._start_time = time.time()
+        self._request_count = 0
+        self._error_count = 0
+        self._status_counts.clear()
+        self._latencies.clear()
+
+
+# Global telemetry singleton
+telemetry = TelemetryCollector()

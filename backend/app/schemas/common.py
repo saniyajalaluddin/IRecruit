@@ -31,6 +31,8 @@ class HealthResponse(BaseModel):
     app_name: str = Field(..., description="Application name")
     version: str = Field(..., description="Application version")
     environment: str = Field(..., description="Runtime environment")
+    database: str = Field(default="connected", description="Database connectivity status")
+    telemetry: Optional[Dict[str, Any]] = Field(default=None, description="System telemetry overview")
     timestamp: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         description="Current server timestamp in UTC",

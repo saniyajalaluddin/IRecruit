@@ -21,6 +21,7 @@ from backend.app.core.errors import (
     validation_exception_handler,
 )
 from backend.app.core.logging import logger
+from backend.app.modules.observability.metrics import telemetry
 
 
 @asynccontextmanager
@@ -66,6 +67,13 @@ def create_application() -> FastAPI:
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+
+        telemetry.record_request(
+            method=request.method,
+            path=request.url.path,
+            status_code=response.status_code,
+            duration_ms=duration_ms,
+        )
 
         logger.info(
             f"{request.method} {request.url.path} - status={response.status_code} duration={duration_ms:.2f}ms",
