@@ -265,6 +265,19 @@ class ResumeIntelligenceParser:
 
         summary = sections.get("summary")
         skills = cls.extract_skills(sections.get("skills"))
+        # If skills section had no items or was missing, detect canonical skills from resume text
+        if len(skills) < 2:
+            from backend.app.modules.matching.engine import build_term_regex
+            from backend.app.modules.matching.taxonomy import CANONICAL_SKILL_MAP
+
+            existing_skills_lower = {s.lower() for s in skills}
+            for skill_alias, canonical_name in CANONICAL_SKILL_MAP.items():
+                if canonical_name not in existing_skills_lower and len(skill_alias) >= 2:
+                    regex = build_term_regex(skill_alias)
+                    if regex.search(text):
+                        skills.append(canonical_name.title() if len(canonical_name) > 3 else canonical_name.upper())
+                        existing_skills_lower.add(canonical_name)
+
         experiences = cls.extract_experience(sections.get("experience"))
         education = cls.extract_education(sections.get("education"))
         projects = cls.extract_projects(sections.get("projects"))

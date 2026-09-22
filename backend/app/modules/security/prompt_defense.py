@@ -14,6 +14,15 @@ ZERO_WIDTH_CHARS = re.compile(r"[\u200B\u200C\u200D\uFEFF\u2060\u180E]")
 
 # Adversarial prompt injection pattern catalog categorized by attack vector
 INJECTION_RULES: List[Tuple[str, re.Pattern, InjectionThreatLevel]] = [
+    # 0. Bracketed system instruction block (must precede token substitutions)
+    (
+        "Bracketed system instruction block",
+        re.compile(
+            r"\[\s*system(?:\s+instruction)?(?::|\s).*?\]",
+            re.IGNORECASE | re.DOTALL,
+        ),
+        InjectionThreatLevel.CRITICAL,
+    ),
     # 1. "Ignore previous instructions"
     (
         "Ignore previous instructions",

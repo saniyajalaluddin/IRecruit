@@ -118,6 +118,9 @@ class JobDescriptionIntelligenceParser:
     @classmethod
     def extract_normalized_terms(cls, line: str) -> List[str]:
         """Extracts candidate keywords and technologies mentioned in the requirement."""
+        from backend.app.modules.matching.engine import build_term_regex
+        from backend.app.modules.matching.taxonomy import CANONICAL_SKILL_MAP
+
         clean = line.lstrip("-*• ").strip()
         # Remove parenthetical notes
         clean = re.sub(r"\(.*?\)", "", clean)
@@ -126,8 +129,22 @@ class JobDescriptionIntelligenceParser:
         terms = []
         for part in parts:
             tok = part.strip().strip(". ")
-            if 1 <= len(tok.split()) <= 4 and len(tok) >= 2:
+            tok = re.sub(
+                r"^(?:\d+\+?\s+years(?:\s+of)?\s+)?(?:hands-on\s+)?(?:experience\s+(?:with|in)?|proficiency\s+in|knowledge\s+of|background\s+in|familiarity\s+with|understanding\s+of)\s+",
+                "",
+                tok,
+                flags=re.IGNORECASE,
+            ).strip()
+            if 1 <= len(tok.split()) <= 5 and len(tok) >= 2:
                 terms.append(tok.lower())
+
+        # Also detect any canonical skill aliases mentioned directly in the line
+        for alias, canonical in CANONICAL_SKILL_MAP.items():
+            if len(alias) >= 2:
+                reg = build_term_regex(alias)
+                if reg.search(line):
+                    terms.append(canonical)
+
         return list(dict.fromkeys(terms))
 
     @classmethod

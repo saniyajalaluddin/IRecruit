@@ -21,6 +21,10 @@ AMBIGUOUS_QUALIFIERS = [
     r"interest\s+in",
     r"working\s+knowledge\s+of",
     r"limited\s+experience\s+with",
+    r"worked\s+in\s+an\s+environment\s+where",
+    r"collaborated\s+on",
+    r"assisted\s+with",
+    r"discussed",
 ]
 
 
@@ -120,7 +124,12 @@ class SemanticMatchingEngine:
         best_chunk_text = ""
 
         # Check each normalized term from the requirement
-        terms_to_check = req.normalized_terms if req.normalized_terms else [req.text.lower()]
+        terms_to_check = list(req.normalized_terms) if req.normalized_terms else [req.text.lower()]
+        for cand_skill in resume.skills:
+            if len(cand_skill) >= 2:
+                skill_regex = build_term_regex(cand_skill)
+                if skill_regex.search(req.text) and cand_skill.lower() not in [t.lower() for t in terms_to_check]:
+                    terms_to_check.append(cand_skill)
 
         for term in terms_to_check:
             clean_term = SkillNormalizer.clean_term(term)
