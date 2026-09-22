@@ -3,6 +3,7 @@
 from backend.app.modules.documents.schemas import DocumentFormat, DocumentMetadata, ParsedDocument
 from backend.app.modules.documents.sanitizer import detect_file_format, sanitize_filename, validate_file_size
 from backend.app.modules.documents.storage import TemporaryStorageManager
+from backend.app.modules.documents.service import DocumentUploadService
 
 __all__ = [
     "DocumentFormat",
@@ -12,4 +13,5 @@ __all__ = [
     "sanitize_filename",
     "validate_file_size",
     "TemporaryStorageManager",
+    "DocumentUploadService",
 ]
