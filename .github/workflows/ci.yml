@@ -1,0 +1,85 @@
+name: IRecruit Continuous Integration
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test & Lint (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Code Syntax & Import Validation
+        run: |
+          python -m compileall backend/ tests/ -q
+
+      - name: Security & Secret Leak Audit
+        run: |
+          # Verify no committed credentials or raw keys
+          python -c "
+          import re, os, sys
+          suspicious = [
+              re.compile(r'sk-[a-zA-Z0-9]{20,}'),
+              re.compile(r'ghp_[a-zA-Z0-9]{20,}'),
+              re.compile(r'AKIA[0-9A-Z]{16}'),
+          ]
+          failed = False
+          for root, _, files in os.walk('.'):
+              if '.git' in root or '.venv' in root or '__pycache__' in root:
+                  continue
+              for f in files:
+                  if f.endswith(('.py', '.html', '.js', '.css', '.json', '.yml', '.md')):
+                      path = os.path.join(root, f)
+                      with open(path, 'r', encoding='utf-8', errors='ignore') as fp:
+                          content = fp.read()
+                          for pat in suspicious:
+                              if pat.search(content):
+                                  print(f'SECURITY VIOLATION: Potential secret leak in {path}')
+                                  failed = True
+          if failed:
+              sys.exit(1)
+          print('Security Audit: Zero secrets detected across repository.')
+          "
+
+      - name: Frontend Static Asset Integrity Check
+        run: |
+          test -f frontend/index.html
+          test -f frontend/styles.css
+          test -f frontend/app.js
+          test -f frontend/favicon.svg
+          test -f frontend/404.html
+          echo "Frontend assets verified successfully."
+
+      - name: Run Pytest Test Suite
+        env:
+          ENVIRONMENT: testing
+          JWT_SECRET_KEY: test-secret-key-32-chars-long-strictly
+          OPENAI_API_KEY: mock-test-key
+        run: |
+          pytest -v --tb=short
+

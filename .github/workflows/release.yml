@@ -1,0 +1,44 @@
+name: IRecruit Release & Container Packaging
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build-and-release:
+    name: Build & Verify Production Container
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Container Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: irecruit:${{ github.ref_name }}
+          load: true
+
+      - name: Verify Container Health Check
+        run: |
+          docker run -d --name irecruit-smoke -p 8000:8000 \
+            -e ENVIRONMENT=production \
+            -e JWT_SECRET_KEY=production-test-key-32-chars-long \
+            irecruit:${{ github.ref_name }}
+          
+          # Wait for container startup
+          sleep 5
+          
+          # Query health endpoint
+          curl -f http://localhost:8000/api/v1/health || (docker logs irecruit-smoke && exit 1)
+          
+          docker stop irecruit-smoke
+          echo "Production container smoke test passed."
+
