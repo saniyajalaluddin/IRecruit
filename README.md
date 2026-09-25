@@ -3,7 +3,7 @@
 [![Continuous Integration](https://github.com/saniyajalaluddin/IRecruit/actions/workflows/ci.yml/badge.svg)](https://github.com/saniyajalaluddin/IRecruit/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.14-blue)](https://www.python.org/downloads/)
-[![Test Suite](https://img.shields.io/badge/tests-223%20passed-brightgreen)](tests/)
+[![Test Suite](https://img.shields.io/badge/tests-227%20passed-brightgreen)](tests/)
 [![Zero Fabrication](https://img.shields.io/badge/Hallucination%20Rate-0.0%25-success)](docs/BENCHMARK_REPORT.md)
 
 **IRecruit** is an enterprise-grade, portfolio-quality career intelligence platform and semantic alignment engine. It analyzes candidate resumes against target job descriptions (JDs) with **mathematical determinism, explainable scoring, verbatim evidence grounding, and zero fabrication**.
