@@ -82,5 +82,5 @@ jobs:
           JWT_SECRET_KEY: test-secret-key-32-chars-long-strictly
           OPENAI_API_KEY: mock-test-key
         run: |
-          pytest -v --tb=short
+          python -m pytest -v --tb=short
 

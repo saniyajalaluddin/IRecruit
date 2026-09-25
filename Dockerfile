@@ -30,8 +30,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN groupadd -g 10001 appgroup && \
     useradd -u 10001 -g appgroup -s /bin/bash -m appuser
 
-# Copy installed python dependencies from builder
-COPY --from=builder /root/.local /home/appuser/.local
+# Copy installed python dependencies from builder with proper non-root ownership
+COPY --chown=appuser:appgroup --from=builder /root/.local /home/appuser/.local
 
 # Copy application backend, frontend static assets, and configurations
 COPY --chown=appuser:appgroup backend /app/backend
