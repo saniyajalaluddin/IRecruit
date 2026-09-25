@@ -34,6 +34,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     os.makedirs(settings.UPLOAD_TEMP_DIR, exist_ok=True)
     os.makedirs("./storage", exist_ok=True)
 
+    # Ensure database schema is initialized
+    try:
+        from backend.app.db.base import Base
+        from backend.app.db.session import engine
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception as e:
+        logger.warning(f"Database schema initialization note: {e}")
+
     yield
 
     logger.info(f"Shutting down {settings.APP_NAME} gracefully")
