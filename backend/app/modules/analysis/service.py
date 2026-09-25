@@ -259,6 +259,18 @@ class AnonymousAnalysisService:
         score_val = scoring_result.overall_score
         grade = "A" if score_val >= 90 else ("B" if score_val >= 80 else ("C" if score_val >= 70 else ("D" if score_val >= 60 else "F")))
 
+        evidence_data = [
+            {
+                "requirement_text": ev.requirement_text,
+                "classification": ev.classification.value,
+                "confidence": 1.0 if ev.classification.value == "MATCHED" else (0.5 if ev.classification.value == "PARTIAL" else 0.0),
+                "has_evidence": ev.has_evidence,
+                "quote": ev.snippets[0].quote if ev.snippets else (ev.explanation if ev.has_evidence else None),
+                "match_type": "Direct Semantic Match" if ev.has_evidence else "Absence",
+            }
+            for ev in evidence_list
+        ]
+
         return AnonymousAnalysisResponse(
             analysis_id=analysis.id,
             session_id=session_id,
@@ -280,6 +292,7 @@ class AnonymousAnalysisService:
             created_at=created_at,
             expires_at=expires_at,
             is_claimed=False,
+            evidence=evidence_data,
         )
 
     async def claim_analysis(

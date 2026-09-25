@@ -30,15 +30,29 @@ jobs:
         run: |
           docker run -d --name irecruit-smoke -p 8000:8000 \
             -e ENVIRONMENT=production \
+            -e SECRET_KEY=production-test-key-32-chars-long \
             -e JWT_SECRET_KEY=production-test-key-32-chars-long \
             irecruit:${{ github.ref_name }}
           
-          # Wait for container startup
-          sleep 5
-          
-          # Query health endpoint
-          curl -f http://localhost:8000/api/v1/health || (docker logs irecruit-smoke && exit 1)
-          
+          # Retry loop waiting for container to initialize
+          READY=0
+          for i in $(seq 1 30); do
+            if curl -s -f http://localhost:8000/api/v1/health > /dev/null 2>&1; then
+              echo "Health check succeeded on attempt $i"
+              READY=1
+              break
+            fi
+            echo "Waiting for container to become healthy (attempt $i/30)..."
+            sleep 1
+          done
+
+          if [ $READY -ne 1 ]; then
+            echo "Container failed health check"
+            docker logs irecruit-smoke
+            docker stop irecruit-smoke
+            exit 1
+          fi
+
           docker stop irecruit-smoke
           echo "Production container smoke test passed."
 

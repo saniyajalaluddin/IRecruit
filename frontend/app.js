@@ -274,10 +274,18 @@ Preferred Qualifications:
       return;
     }
 
+    const analysisId = state.currentAnalysis?.analysis_id;
+    const sessionId = claimToken || state.currentAnalysis?.session_id || state.latestAnonymousToken;
+
+    if (!analysisId || !sessionId) {
+      showToast("No active anonymous analysis to claim.", "error");
+      return;
+    }
+
     try {
-      const result = await apiRequest("/analyses/claim", {
+      const result = await apiRequest(`/analyses/${analysisId}/claim`, {
         method: "POST",
-        body: JSON.stringify({ claim_token: claimToken }),
+        body: JSON.stringify({ session_id: sessionId }),
       });
       showToast("Analysis report saved to your dashboard!", "success");
       sessionStorage.removeItem("irecruit_anon_token");
@@ -303,82 +311,80 @@ Preferred Qualifications:
       return;
     }
 
-    let resumeText = "";
-    if (state.activeInputTab === "upload") {
-      if (!state.selectedFile) {
-        showToast("Please select a resume file (.pdf, .docx, or .txt) to upload.", "error");
-        return;
-      }
-      // Read text if txt, or send as multipart
-    } else {
-      resumeText = elements.resumeTextInput.value.trim();
-      if (!resumeText) {
-        showToast("Please enter or paste your resume content.", "error");
-        elements.resumeTextInput.focus();
-        return;
-      }
-    }
-
     elements.analyzeBtn.disabled = true;
     elements.loadingOverlay.style.display = "block";
     elements.resultsContainer.style.display = "none";
 
     try {
-      let analysisResult;
+      let contentToSend = "";
+      if (state.activeInputTab === "upload") {
+        if (!state.selectedFile) {
+          showToast("Please select a resume file (.pdf, .docx, or .txt) to upload.", "error");
+          return;
+        }
 
-      // Authenticated vs Anonymous endpoint
-      if (state.token) {
-        // Authenticated flow
-        if (state.selectedFile) {
+        if (state.selectedFile.name.endsWith(".txt")) {
+          contentToSend = await readFileAsTextOrBase64(state.selectedFile);
+        } else {
+          // Upload PDF or DOCX to server to extract text cleanly
           const formData = new FormData();
           formData.append("file", state.selectedFile);
-          formData.append("job_description", jdText);
-          formData.append("include_ats_audit", elements.checkAtsAudit.checked);
-          formData.append("minimize_pii", elements.checkPiiMinimization.checked);
-
-          analysisResult = await apiRequest("/analyses/upload", {
+          const uploadRes = await apiRequest("/resumes/upload", {
             method: "POST",
             body: formData,
           });
-        } else {
-          analysisResult = await apiRequest("/analyses/", {
-            method: "POST",
-            body: JSON.stringify({
-              resume_text: resumeText,
-              job_description: jdText,
-              include_ats_audit: elements.checkAtsAudit.checked,
-              minimize_pii: elements.checkPiiMinimization.checked,
-            }),
-          });
+          contentToSend = uploadRes.data?.extracted_text || (await readFileAsTextOrBase64(state.selectedFile));
         }
-        elements.anonymousClaimBanner.style.display = "none";
       } else {
-        // Anonymous flow
-        let contentToSend = resumeText;
-        if (state.selectedFile) {
-          contentToSend = await readFileAsTextOrBase64(state.selectedFile);
+        contentToSend = elements.resumeTextInput.value.trim();
+        if (!contentToSend) {
+          showToast("Please enter or paste your resume content.", "error");
+          elements.resumeTextInput.focus();
+          return;
         }
+      }
 
-        const anonPayload = {
-          resume_text: contentToSend,
-          job_description: jdText,
-          client_ip: "127.0.0.1",
-          user_agent: navigator.userAgent || "Browser Client",
-        };
+      if (contentToSend.length < 20) {
+        showToast("Resume content must be at least 20 characters.", "error");
+        return;
+      }
 
-        const anonResponse = await apiRequest("/analyses/anonymous", {
-          method: "POST",
-          body: JSON.stringify(anonPayload),
-        });
+      const anonPayload = {
+        resume_text: contentToSend,
+        job_description_text: jdText,
+        job_description: jdText,
+        job_title: "Target Role",
+        client_ip: "127.0.0.1",
+        user_agent: navigator.userAgent || "Browser Client",
+      };
 
-        analysisResult = anonResponse.analysis;
-        state.latestAnonymousToken = anonResponse.claim_token;
-        sessionStorage.setItem("irecruit_anon_token", anonResponse.claim_token);
+      const anonResponse = await apiRequest("/analyses/anonymous", {
+        method: "POST",
+        body: JSON.stringify(anonPayload),
+      });
 
+      const resData = anonResponse.data || anonResponse;
+      const analysisResult = resData;
+
+      state.currentAnalysis = analysisResult;
+      state.latestAnonymousToken = resData.session_id || resData.analysis_id;
+      sessionStorage.setItem("irecruit_anon_token", state.latestAnonymousToken);
+
+      // If user is already authenticated, automatically claim into their dashboard
+      if (state.token && resData.analysis_id && resData.session_id) {
+        try {
+          await apiRequest(`/analyses/${resData.analysis_id}/claim`, {
+            method: "POST",
+            body: JSON.stringify({ session_id: resData.session_id }),
+          });
+          elements.anonymousClaimBanner.style.display = "none";
+        } catch (claimErr) {
+          console.warn("Auto-claim skipped:", claimErr);
+        }
+      } else {
         elements.anonymousClaimBanner.style.display = "flex";
       }
 
-      state.currentAnalysis = analysisResult;
       renderAnalysisResults(analysisResult);
       showToast("Alignment analysis completed successfully!", "success");
 
@@ -490,10 +496,10 @@ Preferred Qualifications:
     }
 
     // ATS Audit Block
-    if (analysis.ats_audit) {
+    const ats = analysis.ats_compatibility || analysis.ats_audit;
+    if (ats) {
       elements.atsAuditBlock.style.display = "block";
-      const ats = analysis.ats_audit;
-      const atsScore = Math.round(ats.ats_score || 0);
+      const atsScore = Math.round(ats.overall_score || ats.ats_score || 0);
 
       elements.atsAuditContent.innerHTML = `
         <div class="card-item" style="border-left: 4px solid ${getScoreColor(atsScore)};">
@@ -505,7 +511,7 @@ Preferred Qualifications:
             ${escapeHtml(ats.summary || "Parsed and evaluated against common applicant tracking systems standard layouts.")}
           </p>
           <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-            ${(ats.findings || []).map(f => `<span class="badge" style="background: rgba(255,255,255,0.05); color: var(--text-secondary);">${escapeHtml(f)}</span>`).join("")}
+            ${(ats.findings || [ats.grade ? `Grade ${ats.grade}` : "ATS Verified", `${ats.issues_count || 0} issues detected`]).map(f => `<span class="badge" style="background: rgba(255,255,255,0.05); color: var(--text-secondary);">${escapeHtml(f)}</span>`).join("")}
           </div>
         </div>
       `;

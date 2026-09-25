@@ -120,6 +120,7 @@ async def upload_resume(
             "format": metadata.format.value,
             "file_size_bytes": resume.file_size_bytes,
             "is_anonymous": is_anonymous,
+            "extracted_text": raw_text,
         },
         request_id=request_id,
     )

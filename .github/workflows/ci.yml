@@ -78,6 +78,7 @@ jobs:
       - name: Run Pytest Test Suite
         env:
           ENVIRONMENT: testing
+          SECRET_KEY: test-secret-key-32-chars-long-strictly
           JWT_SECRET_KEY: test-secret-key-32-chars-long-strictly
           OPENAI_API_KEY: mock-test-key
         run: |
