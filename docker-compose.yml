@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: irecruit:latest
+    container_name: irecruit-app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=False
+      - APP_NAME=IRecruit AI Intelligence Engine
+      - JWT_SECRET_KEY=change-this-production-jwt-key-in-vault-securely
+      - CORS_ORIGINS=http://localhost:8000,http://127.0.0.1:8000
+      - LLM_PROVIDER=mock
+      - EMBEDDING_PROVIDER=tfidf
+    volumes:
+      - app_storage:/app/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  app_storage:
+    driver: local
