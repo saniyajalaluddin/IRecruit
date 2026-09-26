@@ -31,8 +31,19 @@ jobs:
           tags: irecruit:${{ github.ref_name }}
           load: true
 
+      - name: Verify Runtime Dependencies in Built Image
+        run: |
+          docker run --rm \
+            irecruit:${{ github.ref_name }} \
+            python -c "import greenlet; print('Runtime greenlet:', greenlet.__version__)"
+          
+          docker run --rm \
+            irecruit:${{ github.ref_name }} \
+            python -c "from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine; print('Runtime SQLAlchemy asyncio import OK')"
+
       - name: Verify Container Health Check
         run: |
+          docker rm -f irecruit-smoke || true
           docker run -d --name irecruit-smoke -p 8000:8000 \
             -e ENVIRONMENT=production \
             -e SECRET_KEY=production-test-key-32-chars-long \
@@ -53,11 +64,19 @@ jobs:
 
           if [ $READY -ne 1 ]; then
             echo "Container failed health check"
+            echo "=== Container Status ==="
+            docker inspect irecruit-smoke || true
+            echo "=== Container Logs ==="
             docker logs irecruit-smoke
-            docker stop irecruit-smoke
+            docker rm -f irecruit-smoke || true
             exit 1
           fi
 
-          docker stop irecruit-smoke
+          docker rm -f irecruit-smoke || true
           echo "Production container smoke test passed."
+
+      - name: Post-Run Container Cleanup
+        if: always()
+        run: |
+          docker rm -f irecruit-smoke || true
 

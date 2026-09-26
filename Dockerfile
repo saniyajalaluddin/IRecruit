@@ -11,9 +11,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY requirements.txt .
 
-RUN python -m pip install --upgrade pip \
-    && python -m pip install --no-cache-dir --user -r requirements.txt \
-    && python -m pip install --no-cache-dir --user "greenlet>=3.0.0"
+# Create isolated standalone virtual environment
+RUN python -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir --upgrade pip \
+    && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt \
+    && /opt/venv/bin/pip install --no-cache-dir "greenlet>=3.0.0" \
+    && /opt/venv/bin/python -c "import greenlet; print('BUILD greenlet:', greenlet.__version__)" \
+    && /opt/venv/bin/python -c "from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine; print('BUILD SQLAlchemy asyncio import OK')"
 
 # ==============================================================================
 # Stage 2: Minimal Production Runtime
@@ -31,8 +35,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN groupadd -g 10001 appgroup && \
     useradd -u 10001 -g appgroup -s /bin/bash -m appuser
 
-# Copy installed python dependencies from builder with proper non-root ownership
-COPY --chown=appuser:appgroup --from=builder /root/.local /home/appuser/.local
+# Copy virtual environment from builder stage with proper ownership
+COPY --chown=appuser:appgroup --from=builder /opt/venv /opt/venv
 
 # Copy application backend, frontend static assets, and configurations
 COPY --chown=appuser:appgroup backend /app/backend
@@ -42,8 +46,8 @@ COPY --chown=appuser:appgroup frontend /app/frontend
 RUN mkdir -p /app/storage /tmp/irecruit_uploads && \
     chown -R appuser:appgroup /app/storage /tmp/irecruit_uploads
 
-# Set PATH for user-installed Python binaries
-ENV PATH="/home/appuser/.local/bin:${PATH}" \
+# Set PATH for virtualenv binaries
+ENV PATH="/opt/venv/bin:${PATH}" \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     ENVIRONMENT=production
